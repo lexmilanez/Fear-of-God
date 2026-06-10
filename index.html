@@ -198,6 +198,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .pin-row{display:flex;gap:8px;align-items:center;}
 .pin-row input{flex:1;min-width:0;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:16px;background:var(--bg);color:var(--text);outline:none;text-align:center;letter-spacing:4px;}
 .pin-row button{flex-shrink:0;padding:10px 16px;border-radius:var(--radius);border:none;background:var(--green);color:white;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;}
+@media(max-width:340px){
+  .pin-row{flex-direction:column;align-items:stretch;}
+  .pin-row input{text-align:left;}
+  .pin-row button{width:100%;padding:12px;white-space:normal;}
+}
 /* ── SCOREBOARD ── */
 .scoreboard{background:var(--green);border-radius:var(--radius-lg);padding:24px 20px;margin-bottom:14px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.2);}
 .sb-game-name{font-size:14px;font-weight:600;color:rgba(255,255,255,.8);margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase;}
