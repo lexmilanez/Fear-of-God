@@ -617,8 +617,8 @@ const DEFAULT_ROSTER = [
 
 let SCHEDULE = [
   {week:1,date:'Tue 6/2/26', time:'9:00 PM',location:'Fitzgerald-Central',home:'Brotisserie Chickens',away:'Fear of God',         fogHome:false,result:'W 15-6'},
-  {week:2,date:'Tue 6/9/26', time:'8:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'TORTANATORS',         fogHome:true, result:null},
-  {week:2,date:'Tue 6/9/26', time:'9:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'The Honey Pack',      fogHome:true, result:null},
+  {week:2,date:'Tue 6/9/26', time:'8:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'TORTANATORS',         fogHome:true, result:'W 6-5'},
+  {week:2,date:'Tue 6/9/26', time:'9:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'The Honey Pack',      fogHome:true, result:'W 13-5'},
   {week:3,date:'Tue 6/16/26',time:'9:00 PM',location:'Fitzgerald-Central',home:'Bottom Of The Barrel', away:'Fear of God',         fogHome:false,result:null},
   {week:4,date:'Tue 6/23/26',time:'8:00 PM',location:'Chanteloup',        home:'TORTANATORS',          away:'Fear of God',         fogHome:false,result:null},
   {week:5,date:'Tue 6/30/26',time:'8:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'Bottom Of The Barrel',fogHome:true, result:null},
@@ -944,11 +944,11 @@ async function loadCloudState(){
     if(roster && Array.isArray(roster)) players = roster;
     if(gameKey_) currentGameKey = gameKey_;
     if(gameMeta) currentGameMeta = gameMeta;
-    // Merge cloud results into SCHEDULE
+    // Merge cloud results into SCHEDULE — cloud only overrides games with no hardcoded result
     if(scheduleResults && typeof scheduleResults === 'object'){
       SCHEDULE = SCHEDULE.map((sg,i)=>({
         ...sg,
-        result: scheduleResults[i] !== undefined ? scheduleResults[i] : sg.result
+        result: sg.result !== null ? sg.result : (scheduleResults[i] !== undefined ? scheduleResults[i] : null)
       }));
     }
   }catch(e){ console.warn('loadCloudState failed', e); }
