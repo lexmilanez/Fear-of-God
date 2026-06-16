@@ -947,7 +947,7 @@ async function loadCloudState(){
       cloudGet('current-game-meta'),
       cloudGet('schedule-results'),
     ]);
-    if(roster && Array.isArray(roster)) players = roster;
+    if(roster && Array.isArray(roster)) players = normalizeRosterOrder(roster);
     if(gameKey_) currentGameKey = gameKey_;
     if(gameMeta) currentGameMeta = gameMeta;
     // Merge cloud results into SCHEDULE — cloud only overrides games with no hardcoded result
@@ -1099,18 +1099,10 @@ async function renderSchedule(){
     try{
       const cached = fieldCache[key] || fieldCache['default'];
       if(cached && Object.keys(cached).length > 0){
-        positions = cached;
+        positions = cleanPositionAssignments(cached);
       } else {
         const val = await cloudGet('field-'+key) || await cloudGet('field-default');
-        if(val) positions = val;
-        else {
-          // fallback: auto-assign by roster position
-          getActivePlayers().forEach(p => {
-            const slot = FIELD_SLOTS.find(s => s.pos === p.pos);
-            if(slot && !positions[slot.pos]) positions[slot.pos] = p.id;
-          });
-        }
-      }
+        if(val) positions = cleanPositionAssignments(val);
     }catch(e){}
 
     // Build mini SVG diamond
@@ -1256,6 +1248,22 @@ function refreshSelects(){
 
 function getActivePlayers(){
   return players.filter(p=>!p.outForWeek);
+}
+function normalizeRosterOrder(list){
+  const active = list.filter(p=>!p.outForWeek);
+  const out = list.filter(p=>p.outForWeek);
+  return [...active,...out];
+}
+function cleanPositionAssignments(positions){
+  const result = {};
+  Object.entries(positions||{}).forEach(([pos,pid])=>{
+    const id = parseInt(pid);
+    const player = players.find(p=>p.id===id);
+    if(player && !player.outForWeek){
+      result[pos] = id;
+    }
+  });
+  return result;
 }
 function findNextActiveIndex(currentIndex){
   if(players.length === 0) return -1;
@@ -1561,7 +1569,12 @@ function draftSet(id,field,value){
   const p=draftRoster.find(x=>x.id===id);
   if(!p) return;
   if(field==='num') p[field]=parseInt(value)||0;
-  else if(field==='outForWeek') p[field]=!!value;
+  else if(field==='outForWeek'){
+    p[field]=!!value;
+    draftRoster = normalizeRosterOrder(draftRoster);
+    renderRosterEditor();
+    return;
+  }
   else p[field]=value;
 }
 function draftMove(id,dir){const i=draftRoster.findIndex(x=>x.id===id);const j=i+dir;if(j<0||j>=draftRoster.length)return;[draftRoster[i],draftRoster[j]]=[draftRoster[j],draftRoster[i]];renderRosterEditor();}
@@ -1579,7 +1592,8 @@ function addNewPlayer(){
 }
 function saveRoster(){
   if(!draftRoster)return;
-  players=draftRoster.map(p=>({...p}));
+  draftRoster = normalizeRosterOrder(draftRoster.map(p=>({...p})));
+  players = draftRoster.map(p=>({...p}));
   saveRosterCloud();
   refreshSelects();
   const f=document.getElementById('saved-flash');f.textContent='✅ Roster saved!';setTimeout(()=>f.textContent='',2500);
@@ -2032,7 +2046,7 @@ async function renderFieldDiagram(){
   if(editBtn) editBtn.style.display = role==='admin' ? 'inline-block' : 'none';
 
   // If no positions saved yet, auto-assign players by their default position
-  let effectivePositions = {...positions};
+  let effectivePositions = cleanPositionAssignments(positions);
   const hasSavedPositions = Object.keys(positions).length > 0;
   if(!hasSavedPositions){
     getActivePlayers().forEach(p => {
