@@ -179,6 +179,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .rei-input{padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;background:var(--bg);color:var(--text);width:100%;outline:none;}
 .rei-input:focus{border-color:var(--green-mid);}
 .rei-select{padding:8px 6px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;background:var(--bg);color:var(--text);width:100%;outline:none;}
+.rei-out-week-label{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--text2);flex-wrap:wrap;}
+.rei-out-week-label input{flex-shrink:0;}
 .move-btns{display:flex;gap:6px;}
 .move-btn{flex:1;padding:8px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--bg);font-size:14px;cursor:pointer;text-align:center;}
 .move-btn:hover{background:var(--bg3);}
@@ -230,6 +232,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 @media(max-width:380px){
   .rei-fields-3{grid-template-columns:1fr 55px 65px;}
   .add-fields{grid-template-columns:1fr 50px 65px;}
+  .rei-out-week-label{flex-direction:column;align-items:flex-start;gap:6px;}
   .move-btn{font-size:12px;padding:7px 4px;}
 }
 /* ── INNING TRACKER ── */
@@ -682,6 +685,14 @@ async function renderLockScreenPreview(){
     <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📅 ${nextGame.date}</div>
     ${gameInfoHtml}
   `;
+
+  const outPlayers = players.filter(p => p.outForWeek);
+  document.getElementById('lock-game-info').insertAdjacentHTML('beforeend', outPlayers.length ? `
+    <div style="margin-top:10px;padding:12px 14px;border:1px solid rgba(255,255,255,0.2);border-radius:var(--radius-lg);background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.9);font-size:13px;line-height:1.5;">
+      <strong style="display:block;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:rgba(255,255,255,0.75);margin-bottom:4px">Out for the week</strong>
+      ${outPlayers.map(p => p.name).join(' · ')}
+    </div>
+  ` : '');
 
   // Load field positions (use first game's key for positions)
   let positions = {};
@@ -1556,7 +1567,7 @@ function renderRosterEditor(){
         <input class="rei-input" placeholder="#" type="number" min="0" max="99" value="${p.num}" oninput="draftSet(${p.id},'num',this.value)">
         <select class="rei-select" onchange="draftSet(${p.id},'pos',this.value)">${posOptions(p.pos)}</select>
       </div>
-      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--text2)">
+      <label class="rei-out-week-label">
         <input type="checkbox" ${p.outForWeek?'checked':''} onchange="draftSet(${p.id},'outForWeek',this.checked)">
         Out for the week
       </label>
@@ -1591,12 +1602,13 @@ function addNewPlayer(){
   document.getElementById('add-player-form').classList.remove('open');
   renderRosterEditor();
 }
-function saveRoster(){
+async function saveRoster(){
   if(!draftRoster)return;
   draftRoster = normalizeRosterOrder(draftRoster.map(p=>({...p})));
   players = draftRoster.map(p=>({...p}));
-  saveRosterCloud();
+  await saveRosterCloud();
   refreshSelects();
+  await renderLockScreenPreview();
   const f=document.getElementById('saved-flash');f.textContent='✅ Roster saved!';setTimeout(()=>f.textContent='',2500);
   renderRosterEditor();
 }
@@ -2105,7 +2117,7 @@ async function renderFieldDiagram(){
   `;
 
   // Bench — players not assigned to any position
-  const benchPlayers = players.filter(p => !assignedIds.has(p.id));
+  const benchPlayers = players.filter(p => !assignedIds.has(p.id) && !p.outForWeek);
   if(benchPlayers.length === 0){
     bench.innerHTML = '<span style="font-size:13px;color:var(--text3);font-style:italic">Everyone is on the field</span>';
   } else {
