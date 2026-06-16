@@ -1103,6 +1103,7 @@ async function renderSchedule(){
       } else {
         const val = await cloudGet('field-'+key) || await cloudGet('field-default');
         if(val) positions = cleanPositionAssignments(val);
+      }
     }catch(e){}
 
     // Build mini SVG diamond
