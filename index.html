@@ -605,19 +605,19 @@ const DEFAULT_PIN  = '1998';
 const POSITIONS = ['P','C','1B','2B','3B','SS','LF','LC','CF','RC','RF','DH'];
 
 const DEFAULT_ROSTER = [
-  {id:1, name:'Daniel Cortes',     num:1,  pos:'LF'},
-  {id:2, name:'Sergio Milanez Jr', num:2,  pos:'RC'},
-  {id:3, name:'Nick Gonzalez',     num:3,  pos:'SS'},
-  {id:4, name:'Juan Ayon',         num:4,  pos:'LC'},
-  {id:5, name:'Everst Barillas',   num:5,  pos:'3B'},
-  {id:6, name:'Betuel Torrez',     num:6,  pos:'P'},
-  {id:7, name:'Alex Milanez',      num:7,  pos:'RF'},
-  {id:8, name:'Jacob Alcantara',   num:8,  pos:'2B'},
-  {id:9, name:'Adonai Torrez',     num:9,  pos:'C'},
-  {id:10,name:'Vik Sinha',         num:10, pos:'1B'},
-  {id:11,name:'Sergio Milanes',    num:11, pos:'DH'},
-  {id:12,name:'Manuel Cruz',       num:12, pos:'DH'},
-  {id:13,name:'Francisco Cruz',    num:13, pos:'DH'},
+  {id:1, name:'Daniel Cortes',     num:1,  pos:'LF', outForWeek:false},
+  {id:2, name:'Sergio Milanez Jr', num:2,  pos:'RC', outForWeek:false},
+  {id:3, name:'Nick Gonzalez',     num:3,  pos:'SS', outForWeek:false},
+  {id:4, name:'Juan Ayon',         num:4,  pos:'LC', outForWeek:false},
+  {id:5, name:'Everst Barillas',   num:5,  pos:'3B', outForWeek:false},
+  {id:6, name:'Betuel Torrez',     num:6,  pos:'P',  outForWeek:false},
+  {id:7, name:'Alex Milanez',      num:7,  pos:'RF', outForWeek:false},
+  {id:8, name:'Jacob Alcantara',   num:8,  pos:'2B', outForWeek:false},
+  {id:9, name:'Adonai Torrez',     num:9,  pos:'C',  outForWeek:false},
+  {id:10,name:'Vik Sinha',         num:10, pos:'1B', outForWeek:false},
+  {id:11,name:'Sergio Milanes',    num:11, pos:'DH', outForWeek:false},
+  {id:12,name:'Manuel Cruz',       num:12, pos:'DH', outForWeek:false},
+  {id:13,name:'Francisco Cruz',    num:13, pos:'DH', outForWeek:false},
 ];
 
 let SCHEDULE = [
@@ -690,7 +690,7 @@ async function renderLockScreenPreview(){
     const val = await cloudGet('field-'+key) || await cloudGet('field-default');
     if(val && Object.keys(val).length) positions = val;
     else {
-      players.forEach(p=>{
+      getActivePlayers().forEach(p=>{
         const slot = FIELD_SLOTS.find(s=>s.pos===p.pos);
         if(slot && !positions[slot.pos]) positions[slot.pos]=p.id;
       });
@@ -760,9 +760,10 @@ async function renderLockScreenPreview(){
     </svg>`;
 
   // ── BATTING ORDER: 2-column grid, no scroll ──
-  const half = Math.ceil(players.length / 2);
-  const col1 = players.slice(0, half);
-  const col2 = players.slice(half);
+  const activePlayers = players.filter(p=>!p.outForWeek);
+  const half = Math.ceil(activePlayers.length / 2);
+  const col1 = activePlayers.slice(0, half);
+  const col2 = activePlayers.slice(half);
 
   const renderRow = (p, i, offset=0) => `
     <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.07)">
@@ -1104,7 +1105,7 @@ async function renderSchedule(){
         if(val) positions = val;
         else {
           // fallback: auto-assign by roster position
-          players.forEach(p => {
+          getActivePlayers().forEach(p => {
             const slot = FIELD_SLOTS.find(s => s.pos === p.pos);
             if(slot && !positions[slot.pos]) positions[slot.pos] = p.id;
           });
@@ -1144,7 +1145,8 @@ async function renderSchedule(){
       </svg>`;
 
     // Batting order list
-    const battingOrder = players.map((p,i)=>`
+    const activePlayers = players.filter(p=>!p.outForWeek);
+  const battingOrder = activePlayers.map((p,i)=>`
       <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
         <span style="width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:rgba(255,255,255,0.9);flex-shrink:0">${i+1}</span>
         <span style="flex:1;font-size:14px;font-weight:600;color:white">${p.name}</span>
@@ -1240,11 +1242,39 @@ function heroTab(tab){
 function refreshSelects(){
   const sel = document.getElementById('sel-player');
   const prevId = sel ? parseInt(sel.value) : null; // remember current selection
-  sel.innerHTML = players.map(p=>`<option value="${p.id}">#${p.num} ${p.name} (${p.pos})</option>`).join('');
+  const activePlayers = players.filter(p=>!p.outForWeek);
+  if(activePlayers.length === 0){
+    sel.innerHTML = '<option value="">No active players</option>';
+    return;
+  }
+  sel.innerHTML = activePlayers.map(p=>`<option value="${p.id}">#${p.num} ${p.name} (${p.pos})</option>`).join('');
   // Restore previous selection if still valid, otherwise keep first player
-  if(prevId && players.find(x=>x.id===prevId)){
+  if(prevId && activePlayers.find(x=>x.id===prevId)){
     sel.value = prevId;
   }
+}
+
+function getActivePlayers(){
+  return players.filter(p=>!p.outForWeek);
+}
+function findNextActiveIndex(currentIndex){
+  if(players.length === 0) return -1;
+  for(let i=1;i<=players.length;i++){
+    const next = (currentIndex + i) % players.length;
+    if(!players[next].outForWeek) return next;
+  }
+  return -1;
+}
+function getNextActivePlayer(currentIndex){
+  const nextIndex = findNextActiveIndex(currentIndex);
+  return nextIndex >= 0 ? players[nextIndex] : null;
+}
+function resolveNextBatter(index){
+  if(index < 0 || players.length === 0) return null;
+  const candidate = players[index];
+  if(candidate && !candidate.outForWeek) return candidate;
+  const nextIndex = findNextActiveIndex(index - 1);
+  return nextIndex >= 0 ? players[nextIndex] : null;
 }
 
 // ── RECORD ───────────────────────────────────────────────────────
@@ -1268,8 +1298,8 @@ async function logIt(){
   const p=players.find(x=>x.id===pid);
   // Calculate next batter BEFORE any async calls
   const currentIndex=players.findIndex(x=>x.id===pid);
-  const nextIndex=(currentIndex+1)%players.length;
-  const nextPlayer=players[nextIndex];
+  const nextIndex=findNextActiveIndex(currentIndex);
+  const nextPlayer=getNextActivePlayer(currentIndex);
   const isOut = selResult==='out' || selResult==='KO' || selResult==='SAC';
   const btn=document.getElementById('log-btn');
   btn.disabled=true;btn.textContent='Saving...';
@@ -1313,9 +1343,9 @@ async function logIt(){
     }
 
     // ── Set next batter LAST ──
-    sel.value=nextPlayer.id;
+    if(nextPlayer) sel.value = nextPlayer.id;
     const f=document.getElementById('flash');
-    if(!isOut) f.textContent=`✓ Logged! Next up: ${nextPlayer.name}`;
+    if(!isOut && nextPlayer) f.textContent=`✓ Logged! Next up: ${nextPlayer.name}`;
     setTimeout(()=>f.textContent='',2500);
     renderLog();
     sel.value=nextPlayer.id;
@@ -1517,13 +1547,23 @@ function renderRosterEditor(){
         <input class="rei-input" placeholder="#" type="number" min="0" max="99" value="${p.num}" oninput="draftSet(${p.id},'num',this.value)">
         <select class="rei-select" onchange="draftSet(${p.id},'pos',this.value)">${posOptions(p.pos)}</select>
       </div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--text2)">
+        <input type="checkbox" ${p.outForWeek?'checked':''} onchange="draftSet(${p.id},'outForWeek',this.checked)">
+        Out for the week
+      </label>
       <div class="move-btns">
         <button class="move-btn" onclick="draftMove(${p.id},-1)" ${i===0?'disabled':''}>⬆ Move up</button>
         <button class="move-btn" onclick="draftMove(${p.id},+1)" ${i===draftRoster.length-1?'disabled':''}>⬇ Move down</button>
       </div>
     </div>`).join('');
 }
-function draftSet(id,field,value){const p=draftRoster.find(x=>x.id===id);if(p)p[field]=field==='num'?parseInt(value)||0:value;}
+function draftSet(id,field,value){
+  const p=draftRoster.find(x=>x.id===id);
+  if(!p) return;
+  if(field==='num') p[field]=parseInt(value)||0;
+  else if(field==='outForWeek') p[field]=!!value;
+  else p[field]=value;
+}
 function draftMove(id,dir){const i=draftRoster.findIndex(x=>x.id===id);const j=i+dir;if(j<0||j>=draftRoster.length)return;[draftRoster[i],draftRoster[j]]=[draftRoster[j],draftRoster[i]];renderRosterEditor();}
 function draftRemove(id){if(!confirm('Remove this player?'))return;draftRoster=draftRoster.filter(x=>x.id!==id);renderRosterEditor();}
 function toggleAddForm(){document.getElementById('add-player-form').classList.toggle('open');}
@@ -1532,7 +1572,7 @@ function addNewPlayer(){
   const num=parseInt(document.getElementById('add-num').value)||0;
   const pos=document.getElementById('add-pos').value||'DH';
   if(!name){alert('Enter a player name');return;}
-  draftRoster.push({id:Date.now(),name,num,pos});
+  draftRoster.push({id:Date.now(),name,num,pos,outForWeek:false});
   document.getElementById('add-name').value='';document.getElementById('add-num').value='';document.getElementById('add-pos').value='';
   document.getElementById('add-player-form').classList.remove('open');
   renderRosterEditor();
@@ -1701,7 +1741,7 @@ async function renderInningTracker(){
   }
 
   // Next batter
-  const nextPlayer = players[s.nextBatterIndex % players.length];
+  const nextPlayer = resolveNextBatter(s.nextBatterIndex);
   nextEl.textContent = nextPlayer ? `#${nextPlayer.num} ${nextPlayer.name}` : '—';
 
   // Last out
@@ -1722,7 +1762,7 @@ async function renderInningTracker(){
           <div>
             <div style="color:var(--text2)"><strong>${h.outs.length} out${h.outs.length!==1?'s':''}</strong>${h.outs.length>0?': '+h.outs.join(', '):''}</div>
             ${h.lastOut?`<div style="color:var(--red-dark);margin-top:2px">❌ Last out: <strong>${h.lastOut}</strong></div>`:''}
-            <div style="color:var(--green-dark);margin-top:2px">🔜 Next inning started with: <strong>${players[h.nextBatterIndex%players.length]?.name||'—'}</strong></div>
+            <div style="color:var(--green-dark);margin-top:2px">🔜 Next inning started with: <strong>${resolveNextBatter(h.nextBatterIndex)?.name||'—'}</strong></div>
           </div>
         </div>`).join('')}
     `;
@@ -1752,14 +1792,14 @@ async function recordInningOut(){
 
   // advance batter index
   const curIdx = players.findIndex(x=>x.id===pid);
-  s.nextBatterIndex = (curIdx + 1) % players.length;
+  s.nextBatterIndex = findNextActiveIndex(curIdx);
 
   saveInningState(s);
   renderInningTracker();
   showInningFlash(`Out #${s.outsThisInning} — ${name}`);
 
   // auto-advance dropdown to next batter
-  const nextPlayer = players[s.nextBatterIndex];
+  const nextPlayer = resolveNextBatter(s.nextBatterIndex);
   if(sel && nextPlayer) sel.value = nextPlayer.id;
 }
 
@@ -1779,7 +1819,7 @@ async function endInning(){
   });
 
   const nextInning = s.currentInning + 1;
-  const nextBatter = players[s.nextBatterIndex % players.length];
+  const nextBatter = resolveNextBatter(s.nextBatterIndex);
   const msg = `Inning ${s.currentInning} ended! Next up: ${nextBatter?.name||'—'}`;
 
   s.currentInning = nextInning;
@@ -1995,7 +2035,7 @@ async function renderFieldDiagram(){
   let effectivePositions = {...positions};
   const hasSavedPositions = Object.keys(positions).length > 0;
   if(!hasSavedPositions){
-    players.forEach(p => {
+    getActivePlayers().forEach(p => {
       const slot = FIELD_SLOTS.find(s => s.pos === p.pos);
       if(slot && !effectivePositions[slot.pos]){
         effectivePositions[slot.pos] = p.id;
@@ -2080,7 +2120,7 @@ async function renderFieldEditor(){
   const positions = await loadFieldPositions();
   const el = document.getElementById('field-editor-slots');
   const playerOptions = `<option value="">— bench —</option>` +
-    players.map(p=>`<option value="${p.id}">#${p.num} ${p.name}</option>`).join('');
+    players.map(p=>`<option value="${p.id}">#${p.num} ${p.name}${p.outForWeek?' • out this week':''}</option>`).join('');
 
   el.innerHTML = FIELD_SLOTS.map(slot => {
     const assigned = positions[slot.pos] || '';
