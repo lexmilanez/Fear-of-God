@@ -492,7 +492,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
         <div style="font-size:13px;color:var(--text2);margin-bottom:14px">Only the opponent score is editable — Fear of God's score is calculated automatically from runs logged.</div>
         <div class="fg" style="margin-bottom:14px">
           <label>Opponent score</label>
-          <input type="number" id="opp-score-input" min="0" max="99" placeholder="0" style="font-size:28px;font-weight:700;text-align:center;padding:14px;">
+          <input type="text" id="opp-score-input" inputmode="numeric" placeholder="0" min="0" max="99" style="width:100%;padding:14px;border:2px solid var(--border2);border-radius:var(--radius-lg);font-size:28px;font-weight:700;text-align:center;background:var(--bg2);color:var(--text);outline:none;transition:border-color .15s;" onfocus="this.style.borderColor='var(--green-mid)'" onblur="this.style.borderColor='var(--border2)'" onkeypress="if(!/[0-9]/.test(event.key))event.preventDefault()">
         </div>
         <button class="log-btn" onclick="saveOppScore()">💾 Save score</button>
         <div class="flash" id="score-flash"></div>
@@ -527,11 +527,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
         <div class="fg">
           <label>Fear of God</label>
-          <input type="number" id="mf-fog-score" min="0" max="99" placeholder="0" style="font-size:26px;font-weight:700;text-align:center;padding:12px;border-radius:var(--radius);border:2px solid var(--green-mid);background:var(--green-light);color:var(--green-dark)">
+          <input type="text" id="mf-fog-score" inputmode="numeric" min="0" max="99" placeholder="0" style="font-size:26px;font-weight:700;text-align:center;padding:12px;border-radius:var(--radius);border:2px solid var(--green-mid);background:var(--green-light);color:var(--green-dark);outline:none;transition:border-color .15s" onkeypress="if(!/[0-9]/.test(event.key))event.preventDefault()">
         </div>
         <div class="fg">
           <label id="mf-opp-label">Opponent</label>
-          <input type="number" id="mf-opp-score" min="0" max="99" placeholder="0" style="font-size:26px;font-weight:700;text-align:center;padding:12px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--bg2);color:var(--text)">
+          <input type="text" id="mf-opp-score" inputmode="numeric" min="0" max="99" placeholder="0" style="font-size:26px;font-weight:700;text-align:center;padding:12px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--bg2);color:var(--text);outline:none;transition:border-color .15s" onfocus="this.style.borderColor='var(--green-mid)'" onblur="this.style.borderColor='var(--border2)'" onkeypress="if(!/[0-9]/.test(event.key))event.preventDefault()">
         </div>
       </div>
 
@@ -1090,6 +1090,8 @@ function selectGame(idx){
   currentGameKey=gameKey(sg);
   currentGameMeta={label:gameLabel(sg),date:sg.date,time:sg.time,location:sg.location};
   saveCurrentGame();
+  // Reset inning tracker for new game — clear cached state so it starts fresh
+  delete inningCache[currentGameKey];
   updateHeader();renderLog();renderSchedule();showTab('log');
 }
 async function renderSchedule(){
@@ -1099,9 +1101,9 @@ async function renderSchedule(){
   const nextIdx = SCHEDULE.findIndex(sg=>!sg.result);
   const nextGame = nextIdx>=0 ? SCHEDULE[nextIdx] : null;
 
-  // Load field positions for next game
+  // Load field positions for next game (viewers only — admins skip hero)
   let heroHtml = '';
-  if(nextGame){
+  if(nextGame && role==='viewer'){
     const key = gameKey(nextGame);
     const opp = nextGame.fogHome ? nextGame.away : nextGame.home;
 
@@ -1597,7 +1599,11 @@ function addNewPlayer(){
   const num=parseInt(document.getElementById('add-num').value)||0;
   const pos=document.getElementById('add-pos').value||'DH';
   if(!name){alert('Enter a player name');return;}
-  draftRoster.push({id:Date.now(),name,num,pos,outForWeek:false});
+  const newPlayer = {id:Date.now(),name,num,pos,outForWeek:false};
+  draftRoster.push(newPlayer);
+  // Also add to players array so new player shows up immediately in at-bat dropdown
+  players.push(newPlayer);
+  refreshSelects();
   document.getElementById('add-name').value='';document.getElementById('add-num').value='';document.getElementById('add-pos').value='';
   document.getElementById('add-player-form').classList.remove('open');
   renderRosterEditor();
@@ -1629,7 +1635,9 @@ async function setOppScore(val){
 }
 async function saveOppScore(){
   if(role!=='admin'){alert('Admin only');return;}
-  const val = parseInt(document.getElementById('opp-score-input').value)||0;
+  const input = document.getElementById('opp-score-input');
+  const val = input.value.trim() === '' ? 0 : parseInt(input.value)||0;
+  if(val < 0 || val > 99){alert('Score must be between 0 and 99');return;}
   await setOppScore(val);
   const f=document.getElementById('score-flash');
   f.textContent='✅ Score saved!';setTimeout(()=>f.textContent='',2000);
@@ -1706,7 +1714,8 @@ async function renderScoreboard(){
       }
     </div>
   `;
-  document.getElementById('opp-score-input').value = oppScore;
+  const input = document.getElementById('opp-score-input');
+  if(input) input.value = oppScore > 0 ? oppScore : '';
   editor.style.display = role==='admin' ? 'block' : 'none';
   // Show missed game entry if admin and no plays logged yet
   const missedEntry = document.getElementById('missed-game-entry');
@@ -1717,8 +1726,10 @@ async function toggleScoreEditor(){
   const ed = document.getElementById('score-editor');
   ed.style.display = ed.style.display==='none' ? 'block' : 'none';
   if(ed.style.display==='block'){
-    document.getElementById('opp-score-input').value = await getOppScore();
-    document.getElementById('opp-score-input').focus();
+    const val = await getOppScore();
+    const input = document.getElementById('opp-score-input');
+    input.value = val > 0 ? val : '';
+    input.focus();
   }
 }
 
@@ -1940,8 +1951,9 @@ function showMarkFinal(idx){
     // Pre-fill FOG score from logged runs
     const key = gameKey(sg);
     const fogRuns = allPlaysCache.filter(p=>p.game_key===key && p.result==='run').length;
-    document.getElementById('mf-fog-score').value = fogRuns || '';
-    document.getElementById('mf-opp-score').value = oppScoreCache[key] !== undefined ? oppScoreCache[key] : '';
+    document.getElementById('mf-fog-score').value = fogRuns > 0 ? fogRuns : '';
+    const oppScore = oppScoreCache[key] !== undefined ? oppScoreCache[key] : 0;
+    document.getElementById('mf-opp-score').value = oppScore > 0 ? oppScore : '';
   }
   // Clear stat fields
   ['mf-hits','mf-runs','mf-walks','mf-outs'].forEach(id=>{
@@ -1963,9 +1975,10 @@ function hideMarkFinal(){
 
 async function confirmMarkFinal(){
   if(markFinalIdx === null) return;
-  const fogScore = parseInt(document.getElementById('mf-fog-score').value);
-  const oppScore = parseInt(document.getElementById('mf-opp-score').value);
-  if(isNaN(fogScore) || isNaN(oppScore)){ alert('Enter both scores'); return; }
+  const fogScore = document.getElementById('mf-fog-score').value.trim() === '' ? 0 : parseInt(document.getElementById('mf-fog-score').value);
+  const oppScore = document.getElementById('mf-opp-score').value.trim() === '' ? 0 : parseInt(document.getElementById('mf-opp-score').value);
+  if(isNaN(fogScore) || isNaN(oppScore)){ alert('Enter valid scores'); return; }
+  if(fogScore < 0 || fogScore > 99 || oppScore < 0 || oppScore > 99){ alert('Scores must be between 0 and 99'); return; }
   const win = fogScore > oppScore;
   const result = `${win?'W':'L'} ${fogScore}-${oppScore}`;
 
