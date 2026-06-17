@@ -1599,7 +1599,8 @@ function addNewPlayer(){
   const num=parseInt(document.getElementById('add-num').value)||0;
   const pos=document.getElementById('add-pos').value||'DH';
   if(!name){alert('Enter a player name');return;}
-  const newPlayer = {id:Date.now(),name,num,pos,outForWeek:false};
+  const highestId = Math.max(0, ...(players.map(p=>Number(p.id)).filter(n=>!isNaN(n))), ...(draftRoster?.map(p=>Number(p.id)).filter(n=>!isNaN(n))||[]));
+  const newPlayer = {id: highestId + 1, name, num, pos, outForWeek:false};
   draftRoster.push(newPlayer);
   // Also add to players array so new player shows up immediately in at-bat dropdown
   players.push(newPlayer);
