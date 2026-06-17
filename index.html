@@ -903,9 +903,14 @@ async function sbFetch(path,opts={}){
     headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':opts.prefer||''},
     ...opts
   });
-  if(!res.ok){const t=await res.text();throw new Error(t);}
-  if(res.status===204)return null;
-  return res.json();
+  const text = await res.text();
+  if(!res.ok){throw new Error(text || `${res.status} ${res.statusText}`);}
+  if(res.status===204 || !text) return null;
+  try{
+    return JSON.parse(text);
+  }catch(e){
+    return text;
+  }
 }
 function setSyncStatus(s,msg,count){
   document.getElementById('sync-dot').className='sync-dot '+s;
@@ -1294,10 +1299,12 @@ function refreshSelects(){
 function getActivePlayers(){
   return players.filter(p=>!p.outForWeek);
 }
+function normalizeOutForWeek(value){
+  return value === true || value === 'true' || value === 1 || value === '1';
+}
 function normalizeRosterIds(list){
   const used = new Set();
   let nextId = 1;
-  const normalizeOutForWeek = value => value === true || value === 'true' || value === 1 || value === '1';
   return list.map(p => {
     const idNum = Number(p.id);
     const normalized = {...p, outForWeek: normalizeOutForWeek(p.outForWeek)};
@@ -1603,7 +1610,7 @@ async function clearGameData(key, label, count){
 // ── ROSTER EDITOR ─────────────────────────────────────────────────
 function openRosterEditor(){
   if(role!=='admin')return;
-  draftRoster=players.map(p=>({...p}));
+  draftRoster=normalizeRosterOrder(players);
   renderRosterEditor();
   document.getElementById('saved-flash').textContent='';
 }
@@ -1666,8 +1673,8 @@ function addNewPlayer(){
 }
 async function saveRoster(){
   if(!draftRoster)return;
-  draftRoster = normalizeRosterOrder(draftRoster.map(p=>({...p})));
-  players = draftRoster.map(p=>({...p}));
+  draftRoster = normalizeRosterOrder(draftRoster);
+  players = normalizeRosterOrder(draftRoster);
   await saveRosterCloud();
   refreshSelects();
   await renderLockScreenPreview();
