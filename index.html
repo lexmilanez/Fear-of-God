@@ -7,7 +7,7 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --green:#3B6D11;--green-mid:#639922;--green-light:#EAF3DE;--green-dark:#27500A;
+  --green:#3A8EC4;--green-mid:#5BADD9;--green-light:#DEEEF8;--green-dark:#1A5B87;
   --blue:#378ADD;--blue-light:#E6F1FB;--blue-dark:#0C447C;
   --amber:#EF9F27;--amber-light:#FAEEDA;--amber-dark:#633806;
   --red:#E24B4A;--red-light:#FCEBEB;--red-dark:#791F1F;
@@ -20,7 +20,7 @@
 @media(prefers-color-scheme:dark){:root{
   --bg:#1c1c1a;--bg2:#252523;--bg3:#2e2e2b;--text:#f0efe9;--text2:#a8a79f;--text3:#6e6d66;
   --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);
-  --green-light:#1a2f08;--green-dark:#a8d870;--blue-light:#0a1e35;--blue-dark:#7ab8f5;
+  --green-light:#0d1f2d;--green-dark:#7dc8ed;--blue-light:#0a1e35;--blue-dark:#7ab8f5;
   --amber-light:#2a1e08;--amber-dark:#f5c060;--red-light:#2a0e0e;--red-dark:#f08080;
   --purple-light:#1a1840;--purple-dark:#b0aaff;
 }}
@@ -759,6 +759,8 @@ async function renderLockScreenPreview(){
 
   document.getElementById('lock-diamond-svg').innerHTML=`
     <svg viewBox="0 0 520 480" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">
+      <!-- Field perimeter border (drawn first; fills cover inner half leaving visible outer edge) -->
+      <path d="M260,455 L28,262 Q260,14 492,262 Z" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="12" stroke-linejoin="round"/>
       <path d="M260,455 L28,262 Q260,14 492,262 Z" fill="rgba(79,195,208,0.45)"/>
       <path d="M260,455 L40,270 Q260,26 480,270 Z" fill="rgba(200,169,110,0.55)"/>
       <path d="M260,442 L58,280 Q260,42 462,280 Z" fill="rgba(79,195,208,0.45)"/>
@@ -769,6 +771,11 @@ async function renderLockScreenPreview(){
       <rect x="337" y="263" width="18" height="18" rx="2" fill="rgba(255,255,255,0.65)" transform="rotate(45,346,272)"/>
       <rect x="251" y="173" width="18" height="18" rx="2" fill="rgba(255,255,255,0.65)" transform="rotate(45,260,182)"/>
       <rect x="163" y="263" width="18" height="18" rx="2" fill="rgba(255,255,255,0.65)" transform="rotate(45,172,272)"/>
+      <!-- Outfield fence -->
+      <path d="M30,264 Q260,16 490,264" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="5" stroke-linecap="round"/>
+      <!-- Foul poles -->
+      <circle cx="30" cy="264" r="6" fill="#FFD700" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+      <circle cx="490" cy="264" r="6" fill="#FFD700" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
       <line x1="260" y1="420" x2="62" y2="234" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
       <line x1="260" y1="420" x2="458" y2="234" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
       ${dots}
@@ -1171,6 +1178,8 @@ async function renderSchedule(){
 
     const diamondSvg = `
       <svg viewBox="0 0 400 360" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:340px;display:block;margin:0 auto">
+        <!-- Field perimeter border (drawn first; fills cover inner half leaving visible outer edge) -->
+        <path d="M200,340 L20,200 Q200,10 380,200 Z" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="10" stroke-linejoin="round"/>
         <path d="M200,340 L20,200 Q200,10 380,200 Z" fill="rgba(79,195,208,0.6)"/>
         <path d="M200,340 L30,205 Q200,18 370,205 Z" fill="rgba(200,169,110,0.7)"/>
         <path d="M200,330 L45,215 Q200,35 355,215 Z" fill="rgba(79,195,208,0.6)"/>
@@ -1181,6 +1190,11 @@ async function renderSchedule(){
         <rect x="261" y="201" width="14" height="14" rx="2" fill="rgba(255,255,255,0.7)" transform="rotate(45,268,208)"/>
         <rect x="193" y="131" width="14" height="14" rx="2" fill="rgba(255,255,255,0.7)" transform="rotate(45,200,138)"/>
         <rect x="125" y="201" width="14" height="14" rx="2" fill="rgba(255,255,255,0.7)" transform="rotate(45,132,208)"/>
+        <!-- Outfield fence -->
+        <path d="M22,200 Q200,12 378,200" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="4" stroke-linecap="round"/>
+        <!-- Foul poles -->
+        <circle cx="22" cy="200" r="4" fill="#FFD700" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+        <circle cx="378" cy="200" r="4" fill="#FFD700" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
         <line x1="200" y1="318" x2="52" y2="182" stroke="rgba(139,69,19,0.4)" stroke-width="1.5"/>
         <line x1="200" y1="318" x2="348" y2="182" stroke="rgba(139,69,19,0.4)" stroke-width="1.5"/>
         ${dots}
@@ -2164,6 +2178,8 @@ async function renderFieldDiagram(){
 
   el.innerHTML = `
     <svg viewBox="0 0 400 360" class="field-svg" xmlns="http://www.w3.org/2000/svg">
+      <!-- Field perimeter border (drawn first; fills cover the inner half leaving a visible outer edge) -->
+      <path d="M200,340 L20,200 Q200,10 380,200 Z" fill="none" stroke="#1a3a08" stroke-width="10" stroke-linejoin="round"/>
       <!-- Sky / outfield -->
       <path d="M200,340 L20,200 Q200,10 380,200 Z" fill="#4FC3D0" />
       <!-- Warning track -->
@@ -2182,6 +2198,11 @@ async function renderFieldDiagram(){
       <rect x="260" y="200" width="16" height="16" rx="2" fill="white" stroke="#ccc" stroke-width="1" transform="rotate(45,268,208)"/>
       <rect x="192" y="130" width="16" height="16" rx="2" fill="white" stroke="#ccc" stroke-width="1" transform="rotate(45,200,138)"/>
       <rect x="124" y="200" width="16" height="16" rx="2" fill="white" stroke="#ccc" stroke-width="1" transform="rotate(45,132,208)"/>
+      <!-- Outfield fence -->
+      <path d="M22,200 Q200,12 378,200" fill="none" stroke="#5C3D11" stroke-width="5" stroke-linecap="round" opacity="0.85"/>
+      <!-- Foul poles -->
+      <circle cx="22" cy="200" r="5" fill="#FFD700" stroke="#B8960C" stroke-width="1.5"/>
+      <circle cx="378" cy="200" r="5" fill="#FFD700" stroke="#B8960C" stroke-width="1.5"/>
       <!-- Foul lines -->
       <line x1="200" y1="320" x2="50" y2="180" stroke="#8B4513" stroke-width="1.5" opacity="0.5"/>
       <line x1="200" y1="320" x2="350" y2="180" stroke="#8B4513" stroke-width="1.5" opacity="0.5"/>
