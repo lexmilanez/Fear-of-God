@@ -1782,23 +1782,6 @@ async function renderScoreboard(){
   const oppWin = oppScore>fogScore;
 
   el.innerHTML=`
-    <div class="scoreboard">
-      <div class="sb-game-name">${currentGameMeta.label}</div>
-      <div class="sb-game-date">${currentGameMeta.date} · ${currentGameMeta.time} · ${currentGameMeta.location}</div>
-      <div class="sb-teams">
-        <div class="sb-team">
-          <div class="sb-team-name">Fear of God</div>
-          <div class="sb-score ${fogWin?'winning':''}">${fogScore}</div>
-        </div>
-        <div class="sb-divider">—</div>
-        <div class="sb-team">
-          <div class="sb-team-name">${oppName}</div>
-          <div class="sb-score ${oppWin?'winning':''}">${oppScore}</div>
-        </div>
-      </div>
-      <div><span class="sb-status ${statusClass}">${statusText}</span></div>
-      <div class="sb-inning">${plays.length} plays recorded · ${runPlays.length} runs scored</div>
-    </div>
     <div class="card">
       <div class="card-title">📊 Stats this game</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;text-align:center">
@@ -1818,6 +1801,23 @@ async function renderScoreboard(){
             ${p.rbi?`<span style="font-size:12px;color:var(--text3);margin-left:auto">+${p.rbi} brought in</span>`:''}
           </div>`).join('')
       }
+    </div>
+    <div class="scoreboard">
+      <div class="sb-game-name">${currentGameMeta.label}</div>
+      <div class="sb-game-date">${currentGameMeta.date} · ${currentGameMeta.time} · ${currentGameMeta.location}</div>
+      <div class="sb-teams">
+        <div class="sb-team">
+          <div class="sb-team-name">Fear of God</div>
+          <div class="sb-score ${fogWin?'winning':''}">${fogScore}</div>
+        </div>
+        <div class="sb-divider">—</div>
+        <div class="sb-team">
+          <div class="sb-team-name">${oppName}</div>
+          <div class="sb-score ${oppWin?'winning':''}">${oppScore}</div>
+        </div>
+      </div>
+      <div><span class="sb-status ${statusClass}">${statusText}</span></div>
+      <div class="sb-inning">${plays.length} plays recorded · ${runPlays.length} runs scored</div>
     </div>
   `;
   const oppInput = document.getElementById('opp-score-input');
