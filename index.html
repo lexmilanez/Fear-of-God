@@ -226,8 +226,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .inning-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;margin-bottom:4px;}
 .inning-fog{font-size:18px;font-weight:700;color:var(--green);}
 .inning-opp{font-size:14px;color:var(--text2);}
-.edit-score-btn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:white;padding:8px 20px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;margin-top:16px;display:inline-block;}
-.edit-score-btn:hover{background:rgba(255,255,255,.25);}
 
 @media(max-width:440px){
   .mark-final-score-grid{grid-template-columns:1fr;gap:12px;}
@@ -492,13 +490,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <!-- Admin score editor -->
     <div id="score-editor" style="display:none">
       <div class="card">
-        <div class="card-title">✏️ Edit opponent score</div>
-        <div style="font-size:13px;color:var(--text2);margin-bottom:14px">Only the opponent score is editable — Fear of God's score is calculated automatically from runs logged.</div>
-        <div class="fg" style="margin-bottom:14px">
-          <label>Opponent score</label>
-          <input type="text" id="opp-score-input" inputmode="numeric" placeholder="0" min="0" max="99" style="width:100%;padding:14px;border:2px solid var(--border2);border-radius:var(--radius-lg);font-size:28px;font-weight:700;text-align:center;background:var(--bg2);color:var(--text);outline:none;transition:border-color .15s;" onfocus="this.style.borderColor='var(--green-mid)'" onblur="this.style.borderColor='var(--border2)'" onkeypress="if(!/[0-9]/.test(event.key))event.preventDefault()">
+        <div class="card-title">✏️ Edit scores</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:14px">Fear of God's score defaults to runs logged — leave it blank to keep it automatic, or enter a value to override.</div>
+        <div class="mark-final-score-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div class="fg">
+            <label>Fear of God</label>
+            <input type="text" id="fog-score-input" inputmode="numeric" placeholder="0" min="0" max="99" style="width:100%;padding:14px;border:2px solid var(--green-mid);border-radius:var(--radius-lg);font-size:28px;font-weight:700;text-align:center;background:var(--green-light);color:var(--green-dark);outline:none;transition:border-color .15s;" onkeypress="if(!/[0-9]/.test(event.key))event.preventDefault()">
+          </div>
+          <div class="fg">
+            <label>Opponent</label>
+            <input type="text" id="opp-score-input" inputmode="numeric" placeholder="0" min="0" max="99" style="width:100%;padding:14px;border:2px solid var(--border2);border-radius:var(--radius-lg);font-size:28px;font-weight:700;text-align:center;background:var(--bg2);color:var(--text);outline:none;transition:border-color .15s;" onfocus="this.style.borderColor='var(--green-mid)'" onblur="this.style.borderColor='var(--border2)'" onkeypress="if(!/[0-9]/.test(event.key))event.preventDefault()">
+          </div>
         </div>
-        <button class="log-btn" onclick="saveOppScore()">💾 Save score</button>
+        <button class="log-btn" onclick="saveScores()">💾 Save scores</button>
         <div class="flash" id="score-flash"></div>
       </div>
     </div>
@@ -1600,10 +1604,12 @@ async function clearGameData(key, label, count){
     // Also clear cloud opp score and inning state for this game
     await Promise.all([
       cloudDelete('oppscore-'+key),
+      cloudDelete('fogscore-'+key),
       cloudDelete('inning-'+key),
       cloudDelete('field-'+key),
     ]);
     delete oppScoreCache[key];
+    delete fogScoreCache[key];
     delete inningCache[key];
     delete fieldCache[key];
     await loadPlays();
@@ -1699,6 +1705,7 @@ async function saveRoster(){
 
 // ── SCOREBOARD ───────────────────────────────────────────────────
 let oppScoreCache = {}; // key -> score, in-memory cache
+let fogScoreCache = {}; // key -> manual override score (null = use runs logged), in-memory cache
 async function getOppScore(){
   const key = currentGameKey||'none';
   if(oppScoreCache[key] !== undefined) return oppScoreCache[key];
@@ -1711,12 +1718,32 @@ async function setOppScore(val){
   oppScoreCache[key] = val;
   await cloudSet('oppscore-'+key, val);
 }
-async function saveOppScore(){
+async function getFogScoreOverride(){
+  const key = currentGameKey||'none';
+  if(fogScoreCache[key] !== undefined) return fogScoreCache[key];
+  const val = await cloudGet('fogscore-'+key);
+  fogScoreCache[key] = val; // null means no override — use runs logged
+  return fogScoreCache[key];
+}
+async function setFogScoreOverride(val){
+  const key = currentGameKey||'none';
+  fogScoreCache[key] = val;
+  if(val===null) await cloudDelete('fogscore-'+key);
+  else await cloudSet('fogscore-'+key, val);
+}
+async function saveScores(){
   if(role!=='admin'){alert('Admin only');return;}
-  const input = document.getElementById('opp-score-input');
-  const val = input.value.trim() === '' ? 0 : parseInt(input.value)||0;
-  if(val < 0 || val > 99){alert('Score must be between 0 and 99');return;}
-  await setOppScore(val);
+  const oppInput = document.getElementById('opp-score-input');
+  const oppVal = oppInput.value.trim() === '' ? 0 : parseInt(oppInput.value)||0;
+  if(oppVal < 0 || oppVal > 99){alert('Score must be between 0 and 99');return;}
+  const fogInput = document.getElementById('fog-score-input');
+  const fogRaw = fogInput.value.trim();
+  let fogVal = null;
+  if(fogRaw !== ''){
+    fogVal = parseInt(fogRaw)||0;
+    if(fogVal < 0 || fogVal > 99){alert('Score must be between 0 and 99');return;}
+  }
+  await Promise.all([ setOppScore(oppVal), setFogScoreOverride(fogVal) ]);
   const f=document.getElementById('score-flash');
   f.textContent='✅ Score saved!';setTimeout(()=>f.textContent='',2000);
   renderScoreboard();
@@ -1738,7 +1765,9 @@ async function renderScoreboard(){
   }
 
   const plays = allPlaysCache.filter(p=>p.game_key===currentGameKey);
-  const fogScore = plays.filter(p=>p.result==='run').length;
+  const runsLogged = plays.filter(p=>p.result==='run').length;
+  const fogOverride = await getFogScoreOverride();
+  const fogScore = (fogOverride!==null && fogOverride!==undefined) ? fogOverride : runsLogged;
   const oppScore = await getOppScore();
   const oppName = currentGameMeta.label.replace('vs ','').replace('@ ','');
   const runPlays = plays.filter(p=>p.result==='run');
@@ -1769,7 +1798,6 @@ async function renderScoreboard(){
       </div>
       <div><span class="sb-status ${statusClass}">${statusText}</span></div>
       <div class="sb-inning">${plays.length} plays recorded · ${runPlays.length} runs scored</div>
-      ${role==='admin'?'<div><button class="edit-score-btn" onclick="toggleScoreEditor()">✏️ Edit opponent score</button></div>':''}
     </div>
     <div class="card">
       <div class="card-title">📊 Stats this game</div>
@@ -1792,23 +1820,17 @@ async function renderScoreboard(){
       }
     </div>
   `;
-  const input = document.getElementById('opp-score-input');
-  if(input) input.value = oppScore > 0 ? oppScore : '';
+  const oppInput = document.getElementById('opp-score-input');
+  if(oppInput && document.activeElement!==oppInput) oppInput.value = oppScore > 0 ? oppScore : '';
+  const fogInput = document.getElementById('fog-score-input');
+  if(fogInput){
+    fogInput.placeholder = runsLogged;
+    if(document.activeElement!==fogInput) fogInput.value = (fogOverride!==null && fogOverride!==undefined) ? fogOverride : '';
+  }
   editor.style.display = role==='admin' ? 'block' : 'none';
   // Show missed game entry if admin and no plays logged yet
   const missedEntry = document.getElementById('missed-game-entry');
   if(missedEntry) missedEntry.style.display = (role==='admin' && plays.length===0) ? 'block' : 'none';
-}
-
-async function toggleScoreEditor(){
-  const ed = document.getElementById('score-editor');
-  ed.style.display = ed.style.display==='none' ? 'block' : 'none';
-  if(ed.style.display==='block'){
-    const val = await getOppScore();
-    const input = document.getElementById('opp-score-input');
-    input.value = val > 0 ? val : '';
-    input.focus();
-  }
 }
 
 // ── INNING TRACKER ────────────────────────────────────────────────
