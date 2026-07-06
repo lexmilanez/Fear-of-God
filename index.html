@@ -2026,8 +2026,11 @@ function toggleManualStats(){
 function openMissedGameEntry(){
   // Find the current game index in schedule
   const idx = SCHEDULE.findIndex(sg=>gameKey(sg)===currentGameKey);
+  showTab('schedule');
+  // The mark-final-modal lives inside the Schedule section, so it's only
+  // visible once that tab is active — switch tabs before showing it.
   if(idx >= 0) showMarkFinal(idx);
-  else { showTab('schedule'); alert('Select a game from the Schedule tab first'); }
+  else alert('Select a game from the Schedule tab first');
 }
 
 // ── MARK GAME FINAL ───────────────────────────────────────────────
