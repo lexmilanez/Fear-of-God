@@ -640,10 +640,9 @@ let SCHEDULE = [
   {week:5,date:'Tue 6/30/26',time:'9:00 PM',location:'Fitzgerald-Central',home:'Fear of God',          away:'Brotisserie Chickens',fogHome:true, result:null},
   {week:6,date:'Tue 7/7/26', time:'8:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'Bottom Of The Barrel',fogHome:true, result:null},
   {week:7,date:'Tue 7/14/26',time:'9:00 PM',location:'Chanteloup',        home:'The Honey Pack',       away:'Fear of God',         fogHome:false,result:null},
-  // Playoffs, week 8: Game 1 doesn't involve Fear of God (shown as an "away" placeholder); Game 3's opponent is TBD until Game 1 finishes.
+  // Playoffs, week 8: 9:00 PM game only happens if Fear of God wins the 7:00 PM game.
   {week:8,date:'Tue 7/21/26',time:'7:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'TORTANATORS',         fogHome:true, result:null},
-  {week:8,date:'Tue 7/21/26',time:'8:00 PM',location:'Chanteloup',        home:'Brotisserie Chickens', away:'Bottom Of The Barrel',fogHome:false,result:null},
-  {week:8,date:'Tue 7/21/26',time:'9:00 PM',location:'Chanteloup',        home:'TBD (Game 1 winner)',  away:'TBD (Game 2 winner)', fogHome:false,result:null},
+  {week:8,date:'Tue 7/21/26',time:'9:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'TBD (Game 1 winner)', fogHome:true, result:null},
 ];
 
 function gameKey(g){return `g-${g.week}-${g.time.replace(/\s/g,'')}`;}
