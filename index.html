@@ -20,7 +20,7 @@
 @media(prefers-color-scheme:dark){:root{
   --bg:#1c1c1a;--bg2:#252523;--bg3:#2e2e2b;--text:#f0efe9;--text2:#a8a79f;--text3:#6e6d66;
   --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);
-  --green-light:#0d1f2d;--green-dark:#7dc8ed;--blue-light:#0a1e35;--blue-dark:#7ab8f5;
+  --green-light:#0d1f2d;--green-dark:#7bc5ea;--blue-light:#0a1e35;--blue-dark:#7ab8f5;
   --amber-light:#2a1e08;--amber-dark:#f5c060;--red-light:#2a0e0e;--red-dark:#f08080;
   --purple-light:#1a1840;--purple-dark:#b0aaff;
 }}
@@ -640,6 +640,10 @@ let SCHEDULE = [
   {week:5,date:'Tue 6/30/26',time:'9:00 PM',location:'Fitzgerald-Central',home:'Fear of God',          away:'Brotisserie Chickens',fogHome:true, result:null},
   {week:6,date:'Tue 7/7/26', time:'8:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'Bottom Of The Barrel',fogHome:true, result:null},
   {week:7,date:'Tue 7/14/26',time:'9:00 PM',location:'Chanteloup',        home:'The Honey Pack',       away:'Fear of God',         fogHome:false,result:null},
+  // Playoffs, week 8: Game 1 doesn't involve Fear of God (shown as an "away" placeholder); Game 3's opponent is TBD until Game 1 finishes.
+  {week:8,date:'Tue 7/21/26',time:'7:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'TORTANATORS',         fogHome:true, result:null},
+  {week:8,date:'Tue 7/21/26',time:'8:00 PM',location:'Chanteloup',        home:'Brotisserie Chickens', away:'Bottom Of The Barrel',fogHome:false,result:null},
+  {week:8,date:'Tue 7/21/26',time:'9:00 PM',location:'Chanteloup',        home:'TBD (Game 1 winner)',  away:'TBD (Game 2 winner)', fogHome:false,result:null},
 ];
 
 function gameKey(g){return `g-${g.week}-${g.time.replace(/\s/g,'')}`;}
