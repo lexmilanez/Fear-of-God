@@ -7,7 +7,7 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --green:#3A8EC4;--green-mid:#5BADD9;--green-light:#DEEEF8;--green-dark:#1A5B87;
+  --green:#D97843;--green-mid:#E5985F;--green-light:#FBEADB;--green-dark:#8A4526;
   --blue:#378ADD;--blue-light:#E6F1FB;--blue-dark:#0C447C;
   --amber:#EF9F27;--amber-light:#FAEEDA;--amber-dark:#633806;
   --red:#E24B4A;--red-light:#FCEBEB;--red-dark:#791F1F;
@@ -20,7 +20,7 @@
 @media(prefers-color-scheme:dark){:root{
   --bg:#1c1c1a;--bg2:#252523;--bg3:#2e2e2b;--text:#f0efe9;--text2:#a8a79f;--text3:#6e6d66;
   --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);
-  --green-light:#0d1f2d;--green-dark:#7bc5ea;--blue-light:#0a1e35;--blue-dark:#7ab8f5;
+  --green-light:#2b1a0f;--green-dark:#f0a870;--blue-light:#0a1e35;--blue-dark:#7ab8f5;
   --amber-light:#2a1e08;--amber-dark:#f5c060;--red-light:#2a0e0e;--red-dark:#f08080;
   --purple-light:#1a1840;--purple-dark:#b0aaff;
 }}
@@ -145,6 +145,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .lb-val{font-size:15px;font-weight:700;min-width:42px;text-align:right;}
 .schedule-week{margin-bottom:18px;}
 .week-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:8px;}
+.season-label{font-size:15px;font-weight:800;color:var(--green-dark);margin:22px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--green-mid);}
+.season-label:first-child{margin-top:0;}
+.season-record{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px;}
+.season-record strong{color:var(--green-dark);}
+.season-record-inline{font-size:13px;font-weight:600;color:var(--text2);border:none;padding:0;margin-left:4px;}
+.season-tabs{display:flex;gap:8px;margin-bottom:16px;}
+.season-tab-btn{flex:1;padding:10px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--bg2);font-size:13px;font-weight:700;cursor:pointer;color:var(--text2);transition:all .15s;}
+.season-tab-btn.on{background:var(--green);border-color:var(--green);color:white;}
 .sg{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:8px;}
 .sg.active-game{border:2px solid var(--green-mid);background:var(--green-light);}
 .sg-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
@@ -617,36 +625,54 @@ const POSITIONS = ['P','C','1B','2B','3B','SS','LF','LC','CF','RC','RF','DH'];
 
 const DEFAULT_ROSTER = [
   {id:1, name:'Daniel Cortes',     num:1,  pos:'LF', outForWeek:false},
-  {id:2, name:'Sergio Milanez Jr', num:2,  pos:'RC', outForWeek:false},
+  {id:2, name:'Sergio Milanez Jr', num:2,  pos:'RF', outForWeek:false},
   {id:3, name:'Nick Gonzalez',     num:3,  pos:'SS', outForWeek:false},
-  {id:4, name:'Juan Ayon',         num:4,  pos:'LC', outForWeek:false},
-  {id:5, name:'Everst Barillas',   num:5,  pos:'3B', outForWeek:false},
+  {id:5, name:'Everst Barillas',   num:5,  pos:'1B', outForWeek:false},
   {id:6, name:'Betuel Torrez',     num:6,  pos:'P',  outForWeek:false},
-  {id:7, name:'Alex Milanez',      num:7,  pos:'RF', outForWeek:false},
+  {id:7, name:'Alex Milanez',      num:7,  pos:'LC', outForWeek:false},
   {id:8, name:'Jacob Alcantara',   num:8,  pos:'2B', outForWeek:false},
-  {id:9, name:'Adonai Torrez',     num:9,  pos:'C',  outForWeek:false},
-  {id:10,name:'Vik Sinha',         num:10, pos:'1B', outForWeek:false},
+  {id:9, name:'Adonai Torrez',     num:9,  pos:'DH', outForWeek:false},
+  {id:10,name:'Vik Sinha',         num:10, pos:'C',  outForWeek:false},
   {id:11,name:'Sergio Milanes',    num:11, pos:'DH', outForWeek:false},
   {id:12,name:'Manuel Cruz',       num:12, pos:'DH', outForWeek:false},
-  {id:13,name:'Francisco Cruz',    num:13, pos:'DH', outForWeek:false},
+  {id:13,name:'Francisco Cruz',    num:13, pos:'3B', outForWeek:false},
+  {id:14,name:'Micah Silverman',   num:14, pos:'RC', outForWeek:false},
 ];
 
 let SCHEDULE = [
-  {week:1,date:'Tue 6/2/26', time:'9:00 PM',location:'Fitzgerald-Central',home:'Brotisserie Chickens',away:'Fear of God',         fogHome:false,result:'W 15-6'},
-  {week:2,date:'Tue 6/9/26', time:'8:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'TORTANATORS',         fogHome:true, result:'W 6-5'},
-  {week:2,date:'Tue 6/9/26', time:'9:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'The Honey Pack',      fogHome:true, result:'W 13-5'},
-  {week:3,date:'Tue 6/16/26',time:'9:00 PM',location:'Fitzgerald-Central',home:'Bottom Of The Barrel', away:'Fear of God',         fogHome:false,result:'W 8-4'},
-  {week:4,date:'Tue 6/23/26',time:'8:00 PM',location:'Chanteloup',        home:'TORTANATORS',          away:'Fear of God',         fogHome:false,result:'W 12-6'},
-  {week:5,date:'Tue 6/30/26',time:'9:00 PM',location:'Fitzgerald-Central',home:'Fear of God',          away:'Brotisserie Chickens',fogHome:true, result:null},
-  {week:6,date:'Tue 7/7/26', time:'8:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'Bottom Of The Barrel',fogHome:true, result:null},
-  {week:7,date:'Tue 7/14/26',time:'9:00 PM',location:'Chanteloup',        home:'The Honey Pack',       away:'Fear of God',         fogHome:false,result:null},
-  // Playoffs, week 8: 9:00 PM game only happens if Fear of God wins the 7:00 PM game.
-  {week:8,date:'Tue 7/21/26',time:'7:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'TORTANATORS',         fogHome:true, result:null},
-  {week:8,date:'Tue 7/21/26',time:'9:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'TBD (Game 1 winner)', fogHome:true, result:null},
+  // Summer 2026 season
+  {season:'Summer 2026',week:1,date:'Tue 6/2/26', time:'9:00 PM',location:'Fitzgerald-Central',home:'Brotisserie Chickens',away:'Fear of God',         fogHome:false,result:'W 15-6'},
+  {season:'Summer 2026',week:2,date:'Tue 6/9/26', time:'8:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'TORTANATORS',         fogHome:true, result:'W 6-5'},
+  {season:'Summer 2026',week:2,date:'Tue 6/9/26', time:'9:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'The Honey Pack',      fogHome:true, result:'W 13-5'},
+  {season:'Summer 2026',week:3,date:'Tue 6/16/26',time:'9:00 PM',location:'Fitzgerald-Central',home:'Bottom Of The Barrel', away:'Fear of God',         fogHome:false,result:'W 8-4'},
+  {season:'Summer 2026',week:4,date:'Tue 6/23/26',time:'8:00 PM',location:'Chanteloup',        home:'TORTANATORS',          away:'Fear of God',         fogHome:false,result:'W 12-6'},
+  {season:'Summer 2026',week:5,date:'Tue 6/30/26',time:'9:00 PM',location:'Fitzgerald-Central',home:'Fear of God',          away:'Brotisserie Chickens',fogHome:true, result:'L 9-22'},
+  {season:'Summer 2026',week:6,date:'Tue 7/7/26', time:'8:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'Bottom Of The Barrel',fogHome:true, result:'L 16-21'},
+  {season:'Summer 2026',week:7,date:'Tue 7/14/26',time:'9:00 PM',location:'Chanteloup',        home:'The Honey Pack',       away:'Fear of God',         fogHome:false,result:'W 14-9'},
+  {season:'Summer 2026',week:8,date:'Tue 7/21/26',time:'7:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'TORTANATORS',         fogHome:true, result:null},
+  // Fall 2026 season (Tuesday - Men's American, Chanteloup)
+  {season:'Fall 2026',  week:1,date:'Tue 9/1/26', time:'9:30 PM',location:'Chanteloup',        home:'Fear of God',          away:'Bottom Of The Barrel',fogHome:true, result:null},
+  {season:'Fall 2026',  week:2,date:'Tue 9/8/26', time:'8:30 PM',location:'Chanteloup',        home:'Fear of God',          away:'Siobahn\'s Mudholes', fogHome:true, result:null},
+  {season:'Fall 2026',  week:3,date:'Tue 9/15/26',time:'9:30 PM',location:'Chanteloup',        home:'Balls Deep',           away:'Fear of God',         fogHome:false,result:null},
+  {season:'Fall 2026',  week:4,date:'Tue 9/22/26',time:'7:30 PM',location:'Chanteloup',        home:'Fear of God',          away:'Hoodbridge',          fogHome:true, result:null},
+  {season:'Fall 2026',  week:5,date:'Tue 9/29/26',time:'8:30 PM',location:'Chanteloup',        home:'Fear of God',          away:'Death By Sliding',    fogHome:true, result:null},
+  {season:'Fall 2026',  week:6,date:'Tue 10/6/26', bye:true},
+  {season:'Fall 2026',  week:7,date:'Tue 10/13/26',time:'7:30 PM',location:'Chanteloup',       home:'The Honey Pack',       away:'Fear of God',         fogHome:false,result:null},
+  {season:'Fall 2026',  week:8,date:'Tue 10/20/26',time:'7:30 PM',location:'Chanteloup',       home:'Bottom Of The Barrel', away:'Fear of God',         fogHome:false,result:null},
+  {season:'Fall 2026',  week:9,date:'Tue 10/27/26',time:'8:30 PM',location:'Chanteloup',       home:'Siobahn\'s Mudholes',  away:'Fear of God',         fogHome:false,result:null},
 ];
 
 function gameKey(g){return `g-${g.week}-${g.time.replace(/\s/g,'')}`;}
 function gameLabel(g){return g.fogHome?'vs '+g.away:'@ '+g.home;}
+function seasonRecord(season){
+  let w=0,l=0;
+  SCHEDULE.forEach(sg=>{
+    if(sg.season!==season || !sg.result) return;
+    if(sg.result.startsWith('W')) w++;
+    else if(sg.result.startsWith('L')) l++;
+  });
+  return `${w}-${l}`;
+}
 
 // ── STATE ────────────────────────────────────────────────────────
 let role = 'viewer'; // 'admin' | 'viewer'
@@ -657,6 +683,7 @@ let currentGameMeta = null;
 let selResult=null,selRBI=0,selStatsP=null,draftRoster=null;
 let pollTimer=null;
 let selectedLockRole='viewer';
+let scheduleSeasonTab=null; // admin schedule season filter
 // Local-only (PIN stays on device for security)
 function getPin(){ return localStorage.getItem('fog-admin-pin')||DEFAULT_PIN; }
 function savePin(p){ localStorage.setItem('fog-admin-pin',p); }
@@ -671,7 +698,7 @@ function lockHeroTab(tab){
 }
 
 async function renderLockScreenPreview(){
-  const nextGame = SCHEDULE.find(sg=>!sg.result);
+  const nextGame = SCHEDULE.find(sg=>!sg.result && !sg.bye);
   if(!nextGame) return;
 
   // Find ALL games on the same date (handles double-headers)
@@ -1149,8 +1176,13 @@ async function renderSchedule(){
   const el=document.getElementById('schedule-list');
 
   // Find next upcoming game (first with no result)
-  const nextIdx = SCHEDULE.findIndex(sg=>!sg.result);
+  const nextIdx = SCHEDULE.findIndex(sg=>!sg.result && !sg.bye);
   const nextGame = nextIdx>=0 ? SCHEDULE[nextIdx] : null;
+
+  const seasons=[...new Set(SCHEDULE.map(sg=>sg.season))];
+  if(!scheduleSeasonTab || !seasons.includes(scheduleSeasonTab)){
+    scheduleSeasonTab = nextGame ? nextGame.season : seasons[seasons.length-1];
+  }
 
   // Load field positions for next game (viewers only — admins skip hero)
   let heroHtml = '';
@@ -1253,11 +1285,36 @@ async function renderSchedule(){
       </div>`;
   }
 
+  // Season tabs (admin only) — collapse the schedule to one season at a time
+  let seasonTabsHtml='';
+  if(role==='admin' && seasons.length>1){
+    seasonTabsHtml=`<div class="season-tabs">${seasons.map(s=>
+      `<button class="season-tab-btn${s===scheduleSeasonTab?' on':''}" onclick="selectScheduleSeason('${s}')">${s}</button>`
+    ).join('')}</div>`;
+  }
+  if(role==='admin'){
+    seasonTabsHtml+=`<div class="season-record">${scheduleSeasonTab} record: <strong>${seasonRecord(scheduleSeasonTab)}</strong></div>`;
+  }
+  const visibleGames = SCHEDULE.map((sg,idx)=>({sg,idx}))
+    .filter(({sg})=>role!=='admin' || sg.season===scheduleSeasonTab);
+
   // Rest of schedule
-  let html=heroHtml;
-  let lastWeek=null;
-  SCHEDULE.forEach((sg,idx)=>{
+  let html=heroHtml+seasonTabsHtml;
+  let lastWeek=null,lastSeason=null;
+  visibleGames.forEach(({sg,idx})=>{
+    if(role!=='admin' && sg.season!==lastSeason){if(lastWeek!==null)html+='</div>';html+=`<div class="season-label">${sg.season} <span class="season-record-inline">${seasonRecord(sg.season)}</span></div>`;lastSeason=sg.season;lastWeek=null;}
     if(sg.week!==lastWeek){if(lastWeek!==null)html+='</div>';html+=`<div class="schedule-week"><div class="week-label">Week ${sg.week}</div>`;lastWeek=sg.week;}
+    if(sg.bye){
+      html+=`<div class="sg">
+        <div class="sg-top">
+          <div class="sg-opponent">🛌 Bye week</div>
+        </div>
+        <div class="sg-meta">
+          <div class="sg-detail"><strong>${sg.date}</strong></div>
+        </div>
+      </div>`;
+      return;
+    }
     const key=gameKey(sg);const isCurrent=currentGameKey===key;
     const gPlays=allPlaysCache.filter(p=>p.game_key===key);
     const opp=sg.fogHome?sg.away:sg.home;
@@ -1291,6 +1348,11 @@ async function renderSchedule(){
   });
   if(lastWeek!==null)html+='</div>';
   el.innerHTML=html;
+}
+
+function selectScheduleSeason(season){
+  scheduleSeasonTab = season;
+  renderSchedule();
 }
 
 function heroTab(tab){
