@@ -145,8 +145,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .lb-val{font-size:15px;font-weight:700;min-width:42px;text-align:right;}
 .schedule-week{margin-bottom:18px;}
 .week-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:8px;}
-.season-label{font-size:15px;font-weight:800;color:var(--green-dark);margin:22px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--green-mid);}
+.season-label{font-size:15px;font-weight:800;color:var(--green-dark);margin:22px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--green-mid);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
 .season-label:first-child{margin-top:0;}
+.season-chevron{font-size:12px;color:var(--text3);font-weight:600;}
 .season-record{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px;}
 .season-record strong{color:var(--green-dark);}
 .season-record-inline{font-size:13px;font-weight:600;color:var(--text2);border:none;padding:0;margin-left:4px;}
@@ -664,6 +665,20 @@ let SCHEDULE = [
 
 function gameKey(g){return `g-${g.week}-${g.time.replace(/\s/g,'')}`;}
 function gameLabel(g){return g.fogHome?'vs '+g.away:'@ '+g.home;}
+function parseGameDate(sg){
+  const m = sg.date.match(/(\d+)\/(\d+)\/(\d+)/);
+  if(!m) return null;
+  const [,mo,da,yr] = m;
+  return new Date(2000+parseInt(yr,10), parseInt(mo,10)-1, parseInt(da,10));
+}
+function findNextGameIndex(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  return SCHEDULE.findIndex(sg=>{
+    if(sg.bye || sg.result) return false;
+    const d = parseGameDate(sg);
+    return !d || d>=today;
+  });
+}
 function seasonRecord(season){
   let w=0,l=0;
   SCHEDULE.forEach(sg=>{
@@ -684,6 +699,7 @@ let selResult=null,selRBI=0,selStatsP=null,draftRoster=null;
 let pollTimer=null;
 let selectedLockRole='viewer';
 let scheduleSeasonTab=null; // admin schedule season filter
+let collapsedSeasons=null; // viewer schedule: seasons collapsed by default except the current one
 // Local-only (PIN stays on device for security)
 function getPin(){ return localStorage.getItem('fog-admin-pin')||DEFAULT_PIN; }
 function savePin(p){ localStorage.setItem('fog-admin-pin',p); }
@@ -698,7 +714,8 @@ function lockHeroTab(tab){
 }
 
 async function renderLockScreenPreview(){
-  const nextGame = SCHEDULE.find(sg=>!sg.result && !sg.bye);
+  const nextGameIdx = findNextGameIndex();
+  const nextGame = nextGameIdx>=0 ? SCHEDULE[nextGameIdx] : null;
   if(!nextGame) return;
 
   // Find ALL games on the same date (handles double-headers)
@@ -1176,7 +1193,7 @@ async function renderSchedule(){
   const el=document.getElementById('schedule-list');
 
   // Find next upcoming game (first with no result)
-  const nextIdx = SCHEDULE.findIndex(sg=>!sg.result && !sg.bye);
+  const nextIdx = findNextGameIndex();
   const nextGame = nextIdx>=0 ? SCHEDULE[nextIdx] : null;
 
   const seasons=[...new Set(SCHEDULE.map(sg=>sg.season))];
@@ -1201,6 +1218,13 @@ async function renderSchedule(){
         if(val) positions = cleanPositionAssignments(val);
       }
     }catch(e){}
+    // Fall back to each player's default roster position when no explicit assignment exists
+    if(Object.keys(positions).length === 0){
+      getActivePlayers().forEach(p=>{
+        const slot = FIELD_SLOTS.find(s=>s.pos===p.pos);
+        if(slot && !positions[slot.pos]) positions[slot.pos]=p.id;
+      });
+    }
 
     // Build mini SVG diamond
     let dots = '';
@@ -1298,14 +1322,9 @@ async function renderSchedule(){
   const visibleGames = SCHEDULE.map((sg,idx)=>({sg,idx}))
     .filter(({sg})=>role!=='admin' || sg.season===scheduleSeasonTab);
 
-  // Rest of schedule
-  let html=heroHtml+seasonTabsHtml;
-  let lastWeek=null,lastSeason=null;
-  visibleGames.forEach(({sg,idx})=>{
-    if(role!=='admin' && sg.season!==lastSeason){if(lastWeek!==null)html+='</div>';html+=`<div class="season-label">${sg.season} <span class="season-record-inline">${seasonRecord(sg.season)}</span></div>`;lastSeason=sg.season;lastWeek=null;}
-    if(sg.week!==lastWeek){if(lastWeek!==null)html+='</div>';html+=`<div class="schedule-week"><div class="week-label">Week ${sg.week}</div>`;lastWeek=sg.week;}
+  function renderGameCard(sg,idx){
     if(sg.bye){
-      html+=`<div class="sg">
+      return `<div class="sg">
         <div class="sg-top">
           <div class="sg-opponent">🛌 Bye week</div>
         </div>
@@ -1313,12 +1332,11 @@ async function renderSchedule(){
           <div class="sg-detail"><strong>${sg.date}</strong></div>
         </div>
       </div>`;
-      return;
     }
     const key=gameKey(sg);const isCurrent=currentGameKey===key;
     const gPlays=allPlaysCache.filter(p=>p.game_key===key);
     const opp=sg.fogHome?sg.away:sg.home;
-    html+=`<div class="sg${isCurrent?' active-game':''}">
+    return `<div class="sg${isCurrent?' active-game':''}">
       <div class="sg-top">
         <div class="sg-opponent">${sg.fogHome?'vs ':'@ '}${opp}</div>
         <div style="display:flex;gap:6px;align-items:center">
@@ -1345,9 +1363,47 @@ async function renderSchedule(){
           </div>`:''}
         </div>`:''}
     </div>`;
-  });
-  if(lastWeek!==null)html+='</div>';
+  }
+
+  function renderGamesGrouped(list){
+    let out='',lastWeek=null;
+    list.forEach(({sg,idx})=>{
+      if(sg.week!==lastWeek){if(lastWeek!==null)out+='</div>';out+=`<div class="schedule-week"><div class="week-label">Week ${sg.week}</div>`;lastWeek=sg.week;}
+      out+=renderGameCard(sg,idx);
+    });
+    if(lastWeek!==null)out+='</div>';
+    return out;
+  }
+
+  // Rest of schedule
+  let html=heroHtml+seasonTabsHtml;
+  if(role==='admin'){
+    html+=renderGamesGrouped(visibleGames);
+  } else {
+    // Current season (most recently added) shown first and expanded; older seasons collapsed at the bottom
+    const currentSeason = seasons[seasons.length-1];
+    if(collapsedSeasons===null){
+      collapsedSeasons = new Set(seasons.filter(s=>s!==currentSeason));
+    }
+    const orderedSeasons = [currentSeason, ...seasons.filter(s=>s!==currentSeason)];
+    orderedSeasons.forEach(season=>{
+      const collapsed = collapsedSeasons.has(season);
+      html+=`<div class="season-label" onclick="toggleSeasonCollapse('${season}')">
+        <span>${season} <span class="season-record-inline">${seasonRecord(season)}</span></span>
+        <span class="season-chevron">${collapsed?'▸':'▾'}</span>
+      </div>`;
+      if(!collapsed){
+        html+=renderGamesGrouped(visibleGames.filter(({sg})=>sg.season===season));
+      }
+    });
+  }
   el.innerHTML=html;
+}
+
+function toggleSeasonCollapse(season){
+  if(collapsedSeasons.has(season)) collapsedSeasons.delete(season);
+  else collapsedSeasons.add(season);
+  renderSchedule();
 }
 
 function selectScheduleSeason(season){
