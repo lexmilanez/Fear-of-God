@@ -317,6 +317,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     </label>
   </div>
   <button class="lock-enter-btn" id="enter-btn" onclick="enterApp()">Enter as Viewer</button>
+  <div id="lock-season-standing" style="margin-top:16px;font-size:13px;font-weight:600;color:rgba(255,255,255,.75);text-align:center"></div>
 </div>
 
 <!-- ── MAIN APP ── -->
@@ -652,7 +653,7 @@ let SCHEDULE = [
   {season:'Summer 2026',week:7,date:'Tue 7/14/26',time:'9:00 PM',location:'Chanteloup',        home:'The Honey Pack',       away:'Fear of God',         fogHome:false,result:'W 14-9'},
   {season:'Summer 2026',week:8,date:'Tue 7/21/26',time:'7:00 PM',location:'Chanteloup',        home:'Fear of God',          away:'TORTANATORS',         fogHome:true, result:null},
   // Fall 2026 season (Tuesday - Men's American, Chanteloup)
-  {season:'Fall 2026',  week:1,date:'Tue 9/1/26', time:'9:30 PM',location:'Chanteloup',        home:'Fear of God',          away:'Bottom Of The Barrel',fogHome:true, result:null},
+  {season:'Fall 2026',  week:1,date:'Tue 9/1/26', time:'9:30 PM',location:'Chanteloup',        home:'Fear of God',          away:'Bottom Of The Barrel',fogHome:true, result:'W 25-5'},
   {season:'Fall 2026',  week:2,date:'Tue 9/8/26', time:'8:30 PM',location:'Chanteloup',        home:'Fear of God',          away:'Siobahn\'s Mudholes', fogHome:true, result:null},
   {season:'Fall 2026',  week:3,date:'Tue 9/15/26',time:'9:30 PM',location:'Chanteloup',        home:'Balls Deep',           away:'Fear of God',         fogHome:false,result:null},
   {season:'Fall 2026',  week:4,date:'Tue 9/22/26',time:'7:30 PM',location:'Chanteloup',        home:'Fear of God',          away:'Hoodbridge',          fogHome:true, result:null},
@@ -713,7 +714,17 @@ function lockHeroTab(tab){
   document.getElementById('lht-batting').style.color      = tab==='batting'?'white':'rgba(255,255,255,.6)';
 }
 
+function currentSeasonName(){
+  const idx = findNextGameIndex();
+  if(idx>=0) return SCHEDULE[idx].season;
+  return SCHEDULE[SCHEDULE.length-1].season;
+}
+
 async function renderLockScreenPreview(){
+  const seasonName = currentSeasonName();
+  const standingEl = document.getElementById('lock-season-standing');
+  if(standingEl) standingEl.innerHTML = `${seasonName} standing: <strong style="color:white">${seasonRecord(seasonName)}</strong>`;
+
   const nextGameIdx = findNextGameIndex();
   const nextGame = nextGameIdx>=0 ? SCHEDULE[nextGameIdx] : null;
   if(!nextGame) return;
