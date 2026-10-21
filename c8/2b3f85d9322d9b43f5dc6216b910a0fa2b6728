@@ -1,0 +1,23 @@
+index.html
+  s_ca44230539c547::t_aeb59358f1ffe8 2272
+  s_ca44230539c547::t_eab39905e16edf 168
+  s_ca44230539c547::t_a4e35395e3687d 1364
+  s_ca44230539c547::t_07fb8daee08993 2307-2308
+  s_ca44230539c547::t_7be7d4f23395f8 692,697,699
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "c82b3f85d9322d9b43f5dc6216b910a0fa2b6728",
+  "prompts": {},
+  "sessions": {
+    "s_ca44230539c547": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "82552a40-9919-40b3-80d1-0aebdeb38094",
+        "model": "accounts/fireworks/models/glm-5p3"
+      },
+      "human_author": "Alex <alex.milanez7@gmail.com>"
+    }
+  }
+}
