@@ -188,6 +188,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .rei-input{padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;background:var(--bg);color:var(--text);width:100%;outline:none;}
 .rei-input:focus{border-color:var(--green-mid);}
 .rei-select{padding:8px 6px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;background:var(--bg);color:var(--text);width:100%;outline:none;}
+.rei-alt-row{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--text2);}
+.rei-alt-row label{white-space:nowrap;}
+.rei-alt-row select{flex:1;min-width:0;}
+.rei-alt-row span{flex:1;}
+.rei-alt-clear{padding:5px 10px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--bg2);font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);}
+.rei-alt-note{font-size:12px;color:var(--green-dark);margin-top:4px;}
 .rei-out-week-label{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--text2);flex-wrap:wrap;}
 .rei-out-week-label input{flex-shrink:0;}
 .move-btns{display:flex;gap:6px;}
@@ -846,7 +852,7 @@ async function renderLockScreenPreview(){
     </svg>`;
 
   // ── BATTING ORDER: 2-column grid, no scroll ──
-  const activePlayers = players.filter(p=>!p.outForWeek);
+  const activePlayers = getBattingSlots();
   const half = Math.ceil(activePlayers.length / 2);
   const col1 = activePlayers.slice(0, half);
   const col2 = activePlayers.slice(half);
@@ -855,7 +861,7 @@ async function renderLockScreenPreview(){
     <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.07)">
       <span style="width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:white;flex-shrink:0">${i+1+offset}</span>
       <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+        <div style="font-size:12px;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${slotLabel(p)}</div>
         <div style="font-size:10px;color:rgba(255,255,255,0.6)">${p.pos}</div>
       </div>
     </div>`;
@@ -1187,9 +1193,9 @@ function selectGame(idx){
   players = normalizeRosterOrder(players);
   refreshSelects();
   const sel = document.getElementById('sel-player');
-  const activePlayers = players.filter(p=>!p.outForWeek);
-  if(sel && activePlayers.length){
-    sel.value = activePlayers[0].id;
+  const firstSlots = getBattingSlots();
+  if(sel && firstSlots.length){
+    sel.value = firstSlots[0].id;
   }
   selResult=null;
   selRBI=0;
@@ -1277,11 +1283,11 @@ async function renderSchedule(){
       </svg>`;
 
     // Batting order list
-    const activePlayers = players.filter(p=>!p.outForWeek);
+    const activePlayers = getBattingSlots();
   const battingOrder = activePlayers.map((p,i)=>`
       <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
         <span style="width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:rgba(255,255,255,0.9);flex-shrink:0">${i+1}</span>
-        <span style="flex:1;font-size:14px;font-weight:600;color:white">${p.name}</span>
+        <span style="flex:1;font-size:14px;font-weight:600;color:white">${slotLabel(p)}</span>
         <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.85)">${p.pos}</span>
       </div>`).join('');
 
@@ -1441,7 +1447,10 @@ function refreshSelects(){
     sel.innerHTML = '<option value="">No active players</option>';
     return;
   }
-  sel.innerHTML = activePlayers.map(p=>`<option value="${p.id}">#${p.num} ${p.name} (${p.pos})</option>`).join('');
+  sel.innerHTML = activePlayers.map(p=>{
+    const partner = getAltPartner(p) || getAltPrimary(p);
+    return `<option value="${p.id}">#${p.num} ${p.name} (${p.pos})${partner?` ⇄ ${partner.name}`:''}</option>`;
+  }).join('');
   // Restore previous selection if still valid, otherwise keep first player
   if(prevId && activePlayers.find(x=>x.id===prevId)){
     sel.value = prevId;
@@ -1486,11 +1495,54 @@ function cleanPositionAssignments(positions){
   });
   return result;
 }
+// ── ALTERNATING BATTERS ─────────────────────────────────────────
+// A player with altId shares their lineup spot with that partner.
+// The listed player bats odd innings (1,3,5…), the partner bats even innings (2,4,6…).
+// If either one is out for the week, the other bats every inning.
+function getAltPartner(p){
+  if(!p || !p.altId || p.outForWeek) return null;
+  const a = players.find(x=>x.id===p.altId);
+  return (a && a.id!==p.id && !a.outForWeek) ? a : null;
+}
+function getAltPrimary(p){
+  if(!p) return null;
+  return players.find(x=>x.id!==p.id && x.altId===p.id && !x.outForWeek) || null;
+}
+function isBattingSlot(p){
+  return !!p && !p.outForWeek && !getAltPrimary(p);
+}
+function getBattingSlots(){
+  return players.filter(isBattingSlot);
+}
+function slotIndexFor(pid){
+  const p = players.find(x=>x.id===pid);
+  const prim = getAltPrimary(p);
+  return players.findIndex(x=>x.id===(prim?prim.id:pid));
+}
+function batterForSlot(slotPlayer, inning){
+  const alt = getAltPartner(slotPlayer);
+  if(!alt) return slotPlayer;
+  return (inning % 2 === 0) ? alt : slotPlayer;
+}
+function slotLabel(p){
+  const alt = getAltPartner(p);
+  return alt ? `${p.name} / ${alt.name}` : p.name;
+}
+function cleanAltLinks(list){
+  const ids = new Set(list.map(x=>x.id));
+  const taken = new Set();
+  list.forEach(x=>{
+    if(!x.altId || x.altId===x.id || !ids.has(x.altId) || taken.has(x.altId) || taken.has(x.id)){ delete x.altId; return; }
+    taken.add(x.altId); taken.add(x.id);
+  });
+  return list;
+}
+
 function findNextActiveIndex(currentIndex){
   if(players.length === 0) return -1;
   for(let i=1;i<=players.length;i++){
     const next = (currentIndex + i) % players.length;
-    if(!players[next].outForWeek) return next;
+    if(isBattingSlot(players[next])) return next;
   }
   return -1;
 }
@@ -1501,7 +1553,7 @@ function getNextActivePlayer(currentIndex){
 function resolveNextBatter(index){
   if(index < 0 || players.length === 0) return null;
   const candidate = players[index];
-  if(candidate && !candidate.outForWeek) return candidate;
+  if(isBattingSlot(candidate)) return candidate;
   const nextIndex = findNextActiveIndex(index - 1);
   return nextIndex >= 0 ? players[nextIndex] : null;
 }
@@ -1533,10 +1585,14 @@ async function logIt(){
   const playerName = p?.name || selectedText;
   console.log('[DEBUG] logIt saving play', { pid, playerName, selectedPlayerText: selectedText, selResult, selRBI, currentGameKey });
   // Calculate next batter BEFORE any async calls
-  const currentIndex=players.findIndex(x=>x.id===pid);
+  const currentIndex=slotIndexFor(pid);
   const nextIndex=findNextActiveIndex(currentIndex);
-  const nextPlayer=getNextActivePlayer(currentIndex);
   const isOut = selResult==='out' || selResult==='KO' || selResult==='SAC';
+  // Which inning will the next batter hit in? (alternating batters depend on it)
+  const preState = await getInningState() || defaultInningState();
+  const nextBatInning = (isOut && preState.outsThisInning + 1 >= 3) ? preState.currentInning + 1 : preState.currentInning;
+  const nextSlot = nextIndex >= 0 ? players[nextIndex] : null;
+  const nextPlayer = nextSlot ? batterForSlot(nextSlot, nextBatInning) : null;
   const btn=document.getElementById('log-btn');
   btn.disabled=true;btn.textContent='Saving...';
   try{
@@ -1570,7 +1626,7 @@ async function logIt(){
         await saveInningState(s);
         await renderInningTracker();
         // Big inning-end notification
-        showInningToast(`🏁 3 outs! Inning ${nextInning-1} over — Starting Inning ${nextInning}. Next up: ${nextPlayer.name}`,'var(--amber)');
+        showInningToast(`🏁 3 outs! Inning ${nextInning-1} over — Starting Inning ${nextInning}. Next up: ${nextPlayer?nextPlayer.name:'—'}`,'var(--amber)');
       } else {
         await saveInningState(s);
         await renderInningTracker();
@@ -1584,7 +1640,7 @@ async function logIt(){
     if(!isOut && nextPlayer) f.textContent=`✓ Logged! Next up: ${nextPlayer.name}`;
     setTimeout(()=>f.textContent='',2500);
     renderLog();
-    sel.value=nextPlayer.id;
+    if(nextPlayer) sel.value=nextPlayer.id;
   }catch(e){
     alert('Could not save — check connection.');
     setSyncStatus('err','Save failed');
@@ -1789,15 +1845,42 @@ function renderRosterEditor(){
         <input type="checkbox" ${p.outForWeek?'checked':''} onchange="draftSet(${p.id},'outForWeek',this.checked)">
         Out for the week
       </label>
+      ${altEditorHtml(p)}
       <div class="move-btns">
         <button class="move-btn" onclick="draftMove(${p.id},-1)" ${i===0?'disabled':''}>⬆ Move up</button>
         <button class="move-btn" onclick="draftMove(${p.id},+1)" ${i===draftRoster.length-1?'disabled':''}>⬇ Move down</button>
       </div>
     </div>`).join('');
 }
+function altEditorHtml(p){
+  const primary = draftRoster.find(x=>x.id!==p.id && x.altId===p.id);
+  if(primary){
+    return `<div class="rei-alt-row"><span>⇄ Alternates with <strong>${primary.name}</strong> — bats innings 2, 4, 6…</span>
+      <button class="rei-alt-clear" onclick="draftSet(${primary.id},'altId','')">Remove</button></div>`;
+  }
+  const opts = draftRoster.filter(x=>x.id!==p.id && !x.altId && !draftRoster.some(y=>y.altId===x.id));
+  return `<div class="rei-alt-row"><label for="alt-${p.id}">⇄ Alternate innings with</label>
+    <select class="rei-select" id="alt-${p.id}" onchange="draftSet(${p.id},'altId',this.value)">
+      <option value="">— No one —</option>
+      ${opts.map(x=>`<option value="${x.id}"${p.altId===x.id?' selected':''}>${x.name}</option>`).join('')}
+    </select></div>
+    ${p.altId?`<div class="rei-alt-note">Bats innings 1, 3, 5… — partner bats 2, 4, 6…</div>`:''}`;
+}
 function draftSet(id,field,value){
   const p=draftRoster.find(x=>x.id===id);
   if(!p) return;
+  if(field==='altId'){
+    const aid = parseInt(value);
+    if(!aid){ delete p.altId; }
+    else {
+      draftRoster.forEach(x=>{ if(x.altId===aid || x.altId===id) delete x.altId; });
+      const partner = draftRoster.find(x=>x.id===aid);
+      if(partner) delete partner.altId;
+      p.altId = aid;
+    }
+    renderRosterEditor();
+    return;
+  }
   if(field==='num') p[field]=parseInt(value)||0;
   else if(field==='outForWeek'){
     p[field]=!!value;
@@ -1808,7 +1891,7 @@ function draftSet(id,field,value){
   else p[field]=value;
 }
 function draftMove(id,dir){const i=draftRoster.findIndex(x=>x.id===id);const j=i+dir;if(j<0||j>=draftRoster.length)return;[draftRoster[i],draftRoster[j]]=[draftRoster[j],draftRoster[i]];renderRosterEditor();}
-function draftRemove(id){if(!confirm('Remove this player?'))return;draftRoster=draftRoster.filter(x=>x.id!==id);renderRosterEditor();}
+function draftRemove(id){if(!confirm('Remove this player?'))return;draftRoster=draftRoster.filter(x=>x.id!==id);draftRoster.forEach(x=>{if(x.altId===id)delete x.altId;});renderRosterEditor();}
 function toggleAddForm(){document.getElementById('add-player-form').classList.toggle('open');}
 function addNewPlayer(){
   const name=document.getElementById('add-name').value.trim();
@@ -1827,7 +1910,7 @@ function addNewPlayer(){
 }
 async function saveRoster(){
   if(!draftRoster)return;
-  draftRoster = normalizeRosterOrder(draftRoster);
+  draftRoster = cleanAltLinks(normalizeRosterOrder(draftRoster));
   players = normalizeRosterOrder(draftRoster);
   await saveRosterCloud();
   refreshSelects();
@@ -2012,8 +2095,10 @@ async function renderInningTracker(){
   }
 
   // Next batter
-  const nextPlayer = resolveNextBatter(s.nextBatterIndex);
-  nextEl.textContent = nextPlayer ? `#${nextPlayer.num} ${nextPlayer.name}` : '—';
+  const nextSlotP = resolveNextBatter(s.nextBatterIndex);
+  const nextPlayer = nextSlotP ? batterForSlot(nextSlotP, s.currentInning) : null;
+  const altOther = nextSlotP && getAltPartner(nextSlotP) ? (nextPlayer.id===nextSlotP.id ? getAltPartner(nextSlotP) : nextSlotP) : null;
+  nextEl.textContent = nextPlayer ? `#${nextPlayer.num} ${nextPlayer.name}${altOther?` (alt. with ${altOther.name})`:''}` : '—';
 
   // Last out
   lastEl.textContent = s.lastOutName
@@ -2033,7 +2118,7 @@ async function renderInningTracker(){
           <div>
             <div style="color:var(--text2)"><strong>${h.outs.length} out${h.outs.length!==1?'s':''}</strong>${h.outs.length>0?': '+h.outs.join(', '):''}</div>
             ${h.lastOut?`<div style="color:var(--red-dark);margin-top:2px">❌ Last out: <strong>${h.lastOut}</strong></div>`:''}
-            <div style="color:var(--green-dark);margin-top:2px">🔜 Next inning started with: <strong>${resolveNextBatter(h.nextBatterIndex)?.name||'—'}</strong></div>
+            <div style="color:var(--green-dark);margin-top:2px">🔜 Next inning started with: <strong>${(()=>{const sp=resolveNextBatter(h.nextBatterIndex);return sp?batterForSlot(sp,h.inning+1).name:'—';})()}</strong></div>
           </div>
         </div>`).join('')}
     `;
@@ -2062,7 +2147,7 @@ async function recordInningOut(){
   s.lastOutInning = s.currentInning;
 
   // advance batter index
-  const curIdx = players.findIndex(x=>x.id===pid);
+  const curIdx = slotIndexFor(pid);
   s.nextBatterIndex = findNextActiveIndex(curIdx);
 
   saveInningState(s);
@@ -2070,7 +2155,8 @@ async function recordInningOut(){
   showInningFlash(`Out #${s.outsThisInning} — ${name}`);
 
   // auto-advance dropdown to next batter
-  const nextPlayer = resolveNextBatter(s.nextBatterIndex);
+  const nextSlotP = resolveNextBatter(s.nextBatterIndex);
+  const nextPlayer = nextSlotP ? batterForSlot(nextSlotP, s.currentInning) : null;
   if(sel && nextPlayer) sel.value = nextPlayer.id;
 }
 
@@ -2090,7 +2176,8 @@ async function endInning(){
   });
 
   const nextInning = s.currentInning + 1;
-  const nextBatter = resolveNextBatter(s.nextBatterIndex);
+  const nextSlotB = resolveNextBatter(s.nextBatterIndex);
+  const nextBatter = nextSlotB ? batterForSlot(nextSlotB, nextInning) : null;
   const msg = `Inning ${s.currentInning} ended! Next up: ${nextBatter?.name||'—'}`;
 
   s.currentInning = nextInning;
