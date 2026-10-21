@@ -1,0 +1,19 @@
+index.html
+  s_991b47bc385bf7::t_3f7bce7688312b 191-196,855,864,1196-1198,1286,1290,1450-1453,1498-1540,1545,1556,1588,1591-1595,1629,1643,1848,1855-1868,1872-1883,1894,1913,2098-2101,2121,2150,2158-2159,2179-2180
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "b359962087b32c3efdd1ff6d89f176cfe4183aef",
+  "prompts": {},
+  "sessions": {
+    "s_991b47bc385bf7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "36888f61-adc0-492f-9236-00bda415d377",
+        "model": "unknown"
+      },
+      "human_author": "Alex <alex.milanez7@gmail.com>"
+    }
+  }
+}
