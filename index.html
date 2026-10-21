@@ -165,6 +165,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .pill-away{background:var(--blue-light);color:var(--blue-dark);}
 .pill-win{background:var(--green-light);color:var(--green-dark);}
 .pill-loss{background:var(--red-light);color:var(--red-dark);}
+.pill-tie{background:var(--amber-light);color:var(--amber-dark);}
 .pill-active{background:var(--green);color:white;}
 .track-btn{font-size:13px;font-weight:700;padding:8px 14px;border-radius:var(--radius);border:none;background:var(--green);color:white;cursor:pointer;margin-top:10px;display:block;width:100%;text-align:center;}
 .track-btn:hover{background:var(--green-mid);}
@@ -688,13 +689,14 @@ function findNextGameIndex(){
   });
 }
 function seasonRecord(season){
-  let w=0,l=0;
+  let w=0,l=0,t=0;
   SCHEDULE.forEach(sg=>{
     if(sg.season!==season || !sg.result) return;
     if(sg.result.startsWith('W')) w++;
     else if(sg.result.startsWith('L')) l++;
+    else if(sg.result.startsWith('T')) t++;
   });
-  return `${w}-${l}`;
+  return t>0 ? `${w}-${l}-${t}` : `${w}-${l}`;
 }
 
 // ── STATE ────────────────────────────────────────────────────────
@@ -1359,7 +1361,7 @@ async function renderSchedule(){
         <div class="sg-opponent">${sg.fogHome?'vs ':'@ '}${opp}</div>
         <div style="display:flex;gap:6px;align-items:center">
           <span class="pill ${sg.fogHome?'pill-home':'pill-away'}">${sg.fogHome?'Home':'Away'}</span>
-          ${sg.result?`<span class="pill ${sg.result.startsWith('W')?'pill-win':'pill-loss'}">${sg.result}</span>`:''}
+          ${sg.result?`<span class="pill ${sg.result.startsWith('W')?'pill-win':sg.result.startsWith('T')?'pill-tie':'pill-loss'}">${sg.result}</span>`:''}
           ${isCurrent?'<span class="pill pill-active">Active</span>':''}
         </div>
       </div>
@@ -2267,7 +2269,7 @@ function showMarkFinal(idx){
 
   // If already has a result, pre-fill from it
   if(sg.result){
-    const parts = sg.result.replace(/^[WL]\s*/,'').split('-');
+    const parts = sg.result.replace(/^[WLT]\s*/,'').split('-');
     document.getElementById('mf-fog-score').value = parts[0]||'';
     document.getElementById('mf-opp-score').value = parts[1]||'';
   } else {
@@ -2302,8 +2304,8 @@ async function confirmMarkFinal(){
   const oppScore = document.getElementById('mf-opp-score').value.trim() === '' ? 0 : parseInt(document.getElementById('mf-opp-score').value);
   if(isNaN(fogScore) || isNaN(oppScore)){ alert('Enter valid scores'); return; }
   if(fogScore < 0 || fogScore > 99 || oppScore < 0 || oppScore > 99){ alert('Scores must be between 0 and 99'); return; }
-  const win = fogScore > oppScore;
-  const result = `${win?'W':'L'} ${fogScore}-${oppScore}`;
+  const outcome = fogScore > oppScore ? 'W' : fogScore < oppScore ? 'L' : 'T';
+  const result = `${outcome} ${fogScore}-${oppScore}`;
 
   // Save manual stats if provided
   const hits  = parseInt(document.getElementById('mf-hits').value)  || 0;
