@@ -1,0 +1,19 @@
+asterix_story_log.json
+  s_ca44230539c547::t_5250e34a2ce433 1-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "48c58e93c6be93282a19dd92e26cd75cfa64538a",
+  "prompts": {},
+  "sessions": {
+    "s_ca44230539c547": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "82552a40-9919-40b3-80d1-0aebdeb38094",
+        "model": "unknown"
+      },
+      "human_author": "Alex <alex.milanez7@gmail.com>"
+    }
+  }
+}
